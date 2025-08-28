@@ -1,27 +1,33 @@
-#include "planning.h"
-#include <cmath>
+#include <iostream>
+#include <fstream>
 #include <vector>
+#include "ublox_reader.h"
 
-using namespace std;
+struct GPSData {
+    double latitude;
+    double longitude;
+};
 
-Planner::Planner(const vector<vector<bool>> &grid) : grid(grid) {
-  rows = grid.size();
-  cols = grid[0].size();
+std::vector<GPSData> readUbloxFile(const std::string &filename) {
+    std::ifstream file(filename, std::ios::binary);
+    std::vector<GPSData> data;
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening UBX file: " << filename << std::endl;
+        return data;
+    }
+
+    unsigned char buffer[100];
+    while (file.read(reinterpret_cast<char*>(buffer), sizeof(buffer))) {
+        // UBX NAV-POSLLH payload starts after header 0xB5 0x62 0x01 0x02
+        int32_t lon_raw = *reinterpret_cast<int32_t*>(&buffer[10]); // in 1e-7 deg
+        int32_t lat_raw = *reinterpret_cast<int32_t*>(&buffer[14]);
+
+        GPSData point;
+        point.longitude = lon_raw / 1e7;
+        point.latitude  = lat_raw / 1e7;
+        data.push_back(point);
+    }
+    return data;
 }
 
-bool Planner::isvalid(int x, int y) const {
-  return (x >= 0 && x < rows && y >= 0 && y < cols && !grid[x][y]);
-}
-
-double Planner::heuristic(int x1, int y1, int x2, int y2) const {
-  return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
-}
-
-vector<pair<int, int>> Planner::pathplanning(pair<int, int> start,
-                                             pair<int, int> goal) {
-  vector<pair<int, int>> path; // store final path 
-			       
-  /* Implement Path Planning logic here */
-
-  return path;
-}
