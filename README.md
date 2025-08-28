@@ -50,7 +50,7 @@ If you are able to compile your code successfully you should see something like 
 
 4. If your make check was unsuccesfull, you can clean your attempt by running `make clean`, review your implementation and repeat the previous steps.
 
-# Solution
+# Solution- Updated
 ## Understanding
 ->Input: GPS data from a u-blox GNSS receiver in UBX binary format (not NMEA), a start and goal pose on a grid map (obstacles vs free cells), and wheel/drive parameters for the rover.
 ->	Output:
