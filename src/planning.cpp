@@ -1,55 +1,93 @@
-#include <iostream>
-#include <vector>
+#include "planning.h"
 #include <queue>
-#include <map>
+#include <iostream>
+#include <unordered_map>
+
 using namespace std;
 
-class Planner {
-public:
-    vector<pair<int,int>> pathplanning(vector<vector<int>>& grid, pair<int,int> start, pair<int,int> goal) {
-        int n = grid.size();
-        int m = grid[0].size();
+// Node structure for BFS
+struct Node {
+    int row, col;
+    Node* parent;
+    Node(int r, int c, Node* p = nullptr) : row(r), col(c), parent(p) {}
+};
 
-        vector<vector<bool>> visited(n, vector<bool>(m, false));
-        map<pair<int,int>, pair<int,int>> parent;
+// Directions (up, down, left, right)
+const int dR[4] = {-1, 1, 0, 0};
+const int dC[4] = {0, 0, -1, 1};
 
-        queue<pair<int,int>> q;
-        q.push(start);
-        visited[start.first][start.second] = true;
+Planning::Planning(Gridmapper& gridmapper) : gm(gridmapper) {}
 
-        int dx[4] = {1, -1, 0, 0};
-        int dy[4] = {0, 0, 1, -1};
+bool Planning::findPath(const GPS& start, const GPS& goal, vector<pair<int,int>>& path) {
+    auto startCell = gm.gpstogrid(start);
+    auto goalCell = gm.gpstogrid(goal);
 
-        while (!q.empty()) {
-            auto [x, y] = q.front(); q.pop();
-            if (make_pair(x, y) == goal) break;
+    int rows = gm.getRows();
+    int cols = gm.getCols();
+    auto grid = gm.getGrid();
 
-            for (int k = 0; k < 4; k++) {
-                int nx = x + dx[k];
-                int ny = y + dy[k];
-                if (nx >= 0 && nx < n && ny >= 0 && ny < m &&
-                    !visited[nx][ny] && grid[nx][ny] == 0) {
-                    visited[nx][ny] = true;
-                    parent[{nx, ny}] = {x, y};
-                    q.push({nx, ny});
-                }
+    if (!gm.isvalid(startCell.first, startCell.second) || 
+        !gm.isvalid(goalCell.first, goalCell.second)) {
+        cerr << "Invalid start or goal!" << endl;
+        return false;
+    }
+
+    if (grid[startCell.first][startCell.second] || grid[goalCell.first][goalCell.second]) {
+        cerr << "Start or goal is blocked!" << endl;
+        return false;
+    }
+
+    vector<vector<bool>> visited(rows, vector<bool>(cols, false));
+    queue<Node*> q;
+
+    Node* startNode = new Node(startCell.first, startCell.second);
+    q.push(startNode);
+    visited[startCell.first][startCell.second] = true;
+
+    Node* goalNode = nullptr;
+
+    while (!q.empty()) {
+        Node* current = q.front();
+        q.pop();
+
+        if (current->row == goalCell.first && current->col == goalCell.second) {
+            goalNode = current;
+            break;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            int nr = current->row + dR[i];
+            int nc = current->col + dC[i];
+
+            if (gm.isvalid(nr, nc) && !visited[nr][nc] && !grid[nr][nc]) {
+                visited[nr][nc] = true;
+                q.push(new Node(nr, nc, current));
             }
         }
-
-        vector<pair<int,int>> path;
-        if (!visited[goal.first][goal.second]) {
-            cerr << "No path found!" << endl;
-            return path;
-        }
-
-        // Reconstruct path
-        for (pair<int,int> at = goal; at != start; at = parent[at])
-            path.push_back(at);
-        path.push_back(start);
-
-        reverse(path.begin(), path.end());
-        return path;
     }
-};
+
+    if (!goalNode) {
+        cerr << "No path found!" << endl;
+        return false;
+    }
+
+    // Backtrack path
+    Node* temp = goalNode;
+    while (temp) {
+        path.push_back({temp->row, temp->col});
+        temp = temp->parent;
+    }
+    reverse(path.begin(), path.end());
+
+    return true;
+}
+
+void Planning::printPath(const vector<pair<int,int>>& path) {
+    cout << "Path (row, col):" << endl;
+    for (auto& p : path) {
+        cout << "(" << p.first << "," << p.second << ") ";
+    }
+    cout << endl;
+}
 
 
