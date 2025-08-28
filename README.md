@@ -52,7 +52,12 @@ If you are able to compile your code successfully you should see something like 
 
 # Solution
 ## Understanding
-Describe what you understood about the problem.
+->Input: GPS data from a u-blox GNSS receiver in UBX binary format (not NMEA), a start and goal pose on a grid map (obstacles vs free cells), and wheel/drive parameters for the rover.
+->	Output:
+1.	Correct latitude & longitude decoded from UBX;
+2.	An optimal path across the grid (obstacle-aware);
+3.	Odometry/motion commands (turn + drive with timing) that the rover can execute;
+4.	End-to-end build and check.
 
 ## Thought Process
 After understanding the problem, describe how you decided to proceed towards solving the question.
