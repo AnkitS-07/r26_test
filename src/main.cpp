@@ -1,46 +1,70 @@
-#include <iostream>
-#include "ublox_reader.h"
-#include "planning.h"
+#include "gridmap.h"
 #include "odometry.h"
+#include "planning.h"
+#include "ublox_reader.h"
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <string>
 
 using namespace std;
 
-int main() {
-    cout << "=== Rover Navigation Test ===" << endl;
+int main(int argc, char *argv[]) {
 
-    // --- Task 1: UBX Data Decode ---
-    UbloxReader reader;
-    if (!reader.readUBX("sample.ubx")) {   // Assume input file is sample.ubx
-        cerr << "Error: Could not read UBX file" << endl;
-        return 1;
-    }
+  if (argc < 3) {
+    cerr << "Usage: " << argv[0] << " <gps_data_file> <output_file>" << endl;
+    return 1;
+  }
 
-    double lat = reader.getLatitude();
-    double lon = reader.getLongitude();
-    cout << "Decoded GPS Coordinates: Lat = " << lat << ", Lon = " << lon << endl;
+  string gps_data = argv[1];
+  string odom_commands = argv[2];
 
-    // --- Task 2: Path Planning ---
-    Planner planner;
-    pair<int, int> start = {0, 0};
-    pair<int, int> goal = {5, 5};
+  // decode GPS data
+  auto result = readUbloxFile(gps_data);
+  if ((int)result.first.lat == 0 && (int)result.first.lon == 0 &&
+      (int)result.second.lat == 0 && (int)result.second.lon == 0) {
+    cout << "Error: Invalid GPS Coordinates" << endl;
+    return 1;
+  }
 
-    vector<pair<int, int>> path = planner.pathplanning(start, goal);
-    cout << "Planned Path:" << endl;
-    for (auto &p : path) {
-        cout << "(" << p.first << "," << p.second << ") ";
-    }
-    cout << endl;
+  cout << "Start -> Lat: " << result.first.lat << " Lon: " << result.first.lon << endl;
+  cout << "Goal  -> Lat: " << result.second.lat << " Lon: " << result.second.lon << endl;
 
-    // --- Task 3: Odometry Commands ---
-    Odometry odo;
-    vector<string> commands = odo.computeCommands(path);
+  // Initialize grid
+  GPS origin = {result.first.lat, result.first.lon};
+  Gridmapper grid(origin, 1.0, 10, 10);
 
-    cout << "Generated Commands:" << endl;
-    for (auto &cmd : commands) {
-        cout << cmd << endl;
-    }
+  pair<int, int> start = grid.gpstogrid(result.first);
+  pair<int, int> goal = grid.gpstogrid(result.second);
 
-    cout << "=== Test Completed ===" << endl;
-    return 0;
+  cout << "Start (grid) -> (" << start.first << "," << start.second << ")" << endl;
+  cout << "Goal  (grid) -> (" << goal.first << "," << goal.second << ")" << endl;
+
+  // Planner
+  Planner planner(grid.getGrid());
+  auto path = planner.pathplanning(start, goal);
+
+  cout << "Planned Path:" << endl;
+  for (auto &p : path) {
+    cout << "(" << p.first << "," << p.second << ") ";
+  }
+  cout << endl;
+
+  // Odometry
+  Odometry odo(0.05, 120); // wheel radius, rpm
+  MotionCommand commands = odo.computeCommands(path);
+
+  ofstream result_file(odom_commands);
+  if (!result_file.is_open()) {
+    cerr << "Error: cannot open file " << odom_commands << endl;
+    return 1;
+  }
+
+  result_file << commands.time_sec << endl;
+  result_file << commands.angle_deg << endl;
+  result_file.close();
+
+  return 0;
 }
+
 
