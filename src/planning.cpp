@@ -1,74 +1,91 @@
 #include <iostream>
 #include <vector>
-#include <string>
-#include <utility>  
-#include <fstream>
-#include <sstream>
-
+#include <queue>
+#include <utility>
+#include <algorithm>
 using namespace std;
-vector<vector<bool>> readUbloxFile(const string& filename) {
-    vector<vector<bool>> grid(10, vector<bool>(10, false));
 
-    grid[2][3] = true;
-    grid[5][5] = true;
-    grid[7][1] = true;
-
-    cout << "Reading ublox file: " << filename << endl;
-    cout << "Created a dummy 10x10 grid with obstacles.\n";
-    return grid;
-}
-
+// A simple grid-based Planner class
 class Planner {
-private:
-    vector<vector<bool>> map;
-
 public:
-    Planner(const vector<vector<bool>>& inputMap) : map(inputMap) {
-        cout << "Planner initialized with map of size " 
-             << map.size() << "x" << map[0].size() << endl;
+    Planner(int w, int h) : width(w), height(h) {
+        grid.resize(height, vector<int>(width, 0));
     }
 
-    vector<pair<int,int>> pathplanning(pair<int,int> start, pair<int,int> goal) {
-        cout << "Planning path from (" << start.first << "," << start.second 
-             << ") to (" << goal.first << "," << goal.second << ")..." << endl;
+    // Block a cell (make it an obstacle)
+    void setObstacle(int x, int y) {
+        if (inBounds(x, y)) {
+            grid[y][x] = 1; // 1 = obstacle
+        }
+    }
 
-        // Dummy straight-line path for now
-        vector<pair<int,int>> path;
-        int x = start.first, y = start.second;
-        while (x != goal.first || y != goal.second) {
-            if (x < goal.first) x++;
-            else if (x > goal.first) x--;
+    // Path planning function (BFS for shortest path)
+    vector<pair<int, int>> pathplanning(pair<int, int> start, pair<int, int> goal) {
+        vector<pair<int, int>> path;
 
-            if (y < goal.second) y++;
-            else if (y > goal.second) y--;
-
-            path.push_back({x,y});
+        if (!inBounds(start.first, start.second) || 
+            !inBounds(goal.first, goal.second)) {
+            cout << "Invalid start or goal position!" << endl;
+            return path;
         }
 
-        cout << "Path found with " << path.size() << " steps.\n";
+        vector<vector<int>> visited(height, vector<int>(width, 0));
+        vector<vector<pair<int,int>>> parent(height, vector<pair<int,int>>(width, {-1, -1}));
+
+        queue<pair<int,int>> q;
+        q.push(start);
+        visited[start.second][start.first] = 1;
+
+        // 4 possible moves (up, down, left, right)
+        int dx[4] = {1, -1, 0, 0};
+        int dy[4] = {0, 0, 1, -1};
+
+        bool found = false;
+
+        while (!q.empty()) {
+            auto [x, y] = q.front(); q.pop();
+
+            if (x == goal.first && y == goal.second) {
+                found = true;
+                break;
+            }
+
+            for (int i = 0; i < 4; i++) {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+
+                if (inBounds(nx, ny) && !visited[ny][nx] && grid[ny][nx] == 0) {
+                    visited[ny][nx] = 1;
+                    parent[ny][nx] = {x, y};
+                    q.push({nx, ny});
+                }
+            }
+        }
+
+        if (found) {
+            // Backtrack to build path
+            pair<int,int> cur = goal;
+            while (cur != make_pair(-1, -1)) {
+                path.push_back(cur);
+                cur = parent[cur.second][cur.first];
+            }
+            reverse(path.begin(), path.end());
+        } else {
+            cout << "No path found!" << endl;
+        }
+
         return path;
     }
-};
 
-class Odometry {
 private:
-    double wheelBase;
-    double wheelRadius;
+    int width, height;
+    vector<vector<int>> grid;
 
-public:
-    Odometry(double base, double radius) 
-        : wheelBase(base), wheelRadius(radius) {
-        cout << "Odometry initialized (wheelBase=" << wheelBase 
-             << ", wheelRadius=" << wheelRadius << ")\n";
-    }
-
-    void computeCommands(vector<pair<int,int>>& path) {
-        cout << "Computing commands for path of length " << path.size() << "...\n";
-        for (auto& p : path) {
-            cout << " -> Move to (" << p.first << "," << p.second << ")\n";
-        }
+    bool inBounds(int x, int y) {
+        return (x >= 0 && x < width && y >= 0 && y < height);
     }
 };
+
 
 
 
