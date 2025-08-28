@@ -1,11 +1,16 @@
 #include "gridmap.h"
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 Gridmapper::Gridmapper(GPS origin, double cellsize, int rows, int cols)
     : origin(origin), cellsize(cellsize), rows(rows), cols(cols),
-      grid(rows, std::vector<bool>(cols, false)) {
+      grid(rows, vector<bool>(cols, false)) {
   makemap();
   printgrid();
 }
@@ -15,8 +20,8 @@ pair<int, int> Gridmapper::gpstogrid(const GPS &point) const {
   double lon_m =
       (point.lon - origin.lon) * (111320.0 * cos(deg2rad(origin.lat)));
 
-  int row = static_cast<int>(std::floor(lat_m / cellsize));
-  int col = static_cast<int>(std::floor(lon_m / cellsize));
+  int row = static_cast<int>(floor(lat_m / cellsize));
+  int col = static_cast<int>(floor(lon_m / cellsize));
 
   return {row, col};
 }
@@ -31,10 +36,10 @@ bool Gridmapper::isvalid(int row, int col) const {
 
 void Gridmapper::makemap() {
   for (int r = 3; r < 8; r++) {
-    this->grid[r][2] = true; // vertical wall
+    grid[r][2] = true; // vertical wall
   }
   for (int c = 4; c < 9; c++) {
-    this->grid[6][c] = true; // horizontal wall
+    grid[6][c] = true; // horizontal wall
   }
 }
 
