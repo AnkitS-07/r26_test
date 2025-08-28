@@ -69,7 +69,10 @@ Planner: small fixtures with known shortest paths.
 Odometry: simple L-shapes to verify timing and angles.
 
 ## Implementation
-How did you decide to implement your solution.
+UBX Decoding – Implemented parser for UBX NAV-PVT messages to extract accurate latitude & longitude after checksum validation.
+Path Planning – Used A* algorithm on the grid map to compute the shortest path from start to goal while avoiding obstacles.
+Odometry Commands – Converted path into rotation and drive commands with timing based on rover wheel parameters.
+Testing & Compilation – Verified correctness using make build and make check, ensuring end-to-end workflow runs successfully.
 
 Mention the details, such as the path planning & odometry how you tested it.
 
