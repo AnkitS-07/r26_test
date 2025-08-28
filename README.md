@@ -60,7 +60,13 @@ If you are able to compile your code successfully you should see something like 
 4.	End-to-end build and check.
 
 ## Thought Process
-After understanding the problem, describe how you decided to proceed towards solving the question.
+1.	UBX decoding: Lock onto UBX sync (0xB5 0x62), verify class/id for NAV-PVT (0x01/0x07), validate length and checksum, then read lon/lat as signed 32-bit integers in 1e-7 degrees (little-endian). Convert to double degrees.
+2.	Path planning: Use A* on a 2D grid. For 4-connected motion, use Manhattan heuristic; for 8-connected (if allowed), use octile heuristic. Reconstruct path by backpointers.
+3.	Odometry: Convert the polyline path into a sequence of (rotate → go-straight) segments. From consecutive points: compute target heading, heading delta, straight-line distance, then time via max_angular_speed and max_linear_speed. Keep per-segment commands and totals (total turn angle, total time, total distance).
+4.	Testing:
+UBX: feed known NAV-PVT frames; compare decoded lat/lon with truth.
+Planner: small fixtures with known shortest paths.
+Odometry: simple L-shapes to verify timing and angles.
 
 ## Implementation
 How did you decide to implement your solution.
