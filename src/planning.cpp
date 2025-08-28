@@ -1,101 +1,72 @@
 #include <iostream>
 #include <vector>
-#include <queue>
-#include <map>
-#include <algorithm>
-#include <cmath>
+#include <string>
+#include <utility>  
+#include <fstream>
+#include <sstream>
+
 using namespace std;
+vector<vector<bool>> readUbloxFile(const string& filename) {
+    vector<vector<bool>> grid(10, vector<bool>(10, false));
 
-// ---------------- GPS STRUCT ----------------
-struct GPS {
-    double latitude;
-    double longitude;
-    GPS(double lat = 0, double lon = 0) : latitude(lat), longitude(lon) {}
-};
+    grid[2][3] = true;
+    grid[5][5] = true;
+    grid[7][1] = true;
 
-// ---------------- GRIDMAPPER CLASS ----------------
-class Gridmapper {
-public:
-    int width, height;
+    cout << "Reading ublox file: " << filename << endl;
+    cout << "Created a dummy 10x10 grid with obstacles.\n";
+    return grid;
+}
 
-    Gridmapper(int w = 10, int h = 10) : width(w), height(h) {}
-
-    pair<int, int> gpstogrid(const GPS& gps) {
-        // Dummy conversion
-        int x = static_cast<int>(gps.latitude) % width;
-        int y = static_cast<int>(gps.longitude) % height;
-        return {x, y};
-    }
-
-    GPS gridtogps(const pair<int, int>& cell) {
-        return GPS(cell.first, cell.second);
-    }
-
-    bool isValidCell(const pair<int, int>& cell) {
-        return (cell.first >= 0 && cell.first < width &&
-                cell.second >= 0 && cell.second < height);
-    }
-};
-
-// ---------------- PLANNING CLASS ----------------
-class Planning {
+class Planner {
 private:
-    Gridmapper& gm;
+    vector<vector<bool>> map;
 
 public:
-    Planning(Gridmapper& gridmapper) : gm(gridmapper) {}
-
-    bool findPath(const GPS& start, const GPS& goal, vector<pair<int, int>>& path) {
-        auto startCell = gm.gpstogrid(start);
-        auto goalCell = gm.gpstogrid(goal);
-
-        queue<pair<int, int>> q;
-        map<pair<int, int>, pair<int, int>> parent;
-        vector<vector<bool>> visited(gm.width, vector<bool>(gm.height, false));
-
-        q.push(startCell);
-        visited[startCell.first][startCell.second] = true;
-
-        int dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
-        bool found = false;
-
-        while (!q.empty()) {
-            auto cur = q.front();
-            q.pop();
-
-            if (cur == goalCell) {
-                found = true;
-                break;
-            }
-
-            for (auto& d : dirs) {
-                pair<int, int> next = {cur.first + d[0], cur.second + d[1]};
-                if (gm.isValidCell(next) && !visited[next.first][next.second]) {
-                    visited[next.first][next.second] = true;
-                    parent[next] = cur;
-                    q.push(next);
-                }
-            }
-        }
-
-        if (!found) return false;
-
-        // Reconstruct path
-        path.clear();
-        for (auto cur = goalCell; cur != startCell; cur = parent[cur]) {
-            path.push_back(cur);
-        }
-        path.push_back(startCell);
-        reverse(path.begin(), path.end());
-        return true;
+    Planner(const vector<vector<bool>>& inputMap) : map(inputMap) {
+        cout << "Planner initialized with map of size " 
+             << map.size() << "x" << map[0].size() << endl;
     }
 
-    void printPath(const vector<pair<int, int>>& path) {
-        cout << "Path: ";
-        for (auto& p : path) {
-            cout << "(" << p.first << "," << p.second << ") ";
+    vector<pair<int,int>> pathplanning(pair<int,int> start, pair<int,int> goal) {
+        cout << "Planning path from (" << start.first << "," << start.second 
+             << ") to (" << goal.first << "," << goal.second << ")..." << endl;
+
+        // Dummy straight-line path for now
+        vector<pair<int,int>> path;
+        int x = start.first, y = start.second;
+        while (x != goal.first || y != goal.second) {
+            if (x < goal.first) x++;
+            else if (x > goal.first) x--;
+
+            if (y < goal.second) y++;
+            else if (y > goal.second) y--;
+
+            path.push_back({x,y});
         }
-        cout << endl;
+
+        cout << "Path found with " << path.size() << " steps.\n";
+        return path;
+    }
+};
+
+class Odometry {
+private:
+    double wheelBase;
+    double wheelRadius;
+
+public:
+    Odometry(double base, double radius) 
+        : wheelBase(base), wheelRadius(radius) {
+        cout << "Odometry initialized (wheelBase=" << wheelBase 
+             << ", wheelRadius=" << wheelRadius << ")\n";
+    }
+
+    void computeCommands(vector<pair<int,int>>& path) {
+        cout << "Computing commands for path of length " << path.size() << "...\n";
+        for (auto& p : path) {
+            cout << " -> Move to (" << p.first << "," << p.second << ")\n";
+        }
     }
 };
 
